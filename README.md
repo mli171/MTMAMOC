@@ -1,7 +1,8 @@
 # Changepoint Detection in Categorical Time Series with Application to Daily Total Cloud Cover in Canada
 
 ---
-Authors: Mo Li (mo.li@louisiana.edu), QiQi Lu (qlu2@vcu.edu), XiaoLan Wang (xiaolan.wang@canada.ca)
+Authors: <br/>
+Mo Li (mo.li@louisiana.edu), QiQi Lu (qlu2@vcu.edu), XiaoLan Wang (xiaolan.wang@canada.ca)
 ---
 
 ## Overview
