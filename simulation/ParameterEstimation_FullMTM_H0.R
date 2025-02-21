@@ -1,5 +1,5 @@
-# Parallelized perform nTasks simulations to check the parameter estimation 
-#    performance by (bias, sd, mse)
+# set library path
+.libPaths(c("/home/lim23/lib", .libPaths()))
 
 library(VGAM)
 library(foreach)
@@ -7,7 +7,8 @@ library(doMC)
 library(Rcpp)
 library(RcppArmadillo)
 
-sourceCpp("src/QuasiNewton.cpp")
+# sourceCpp("ParameterEstimation/QuasiNewton/QuasiNewtonTest.cpp") # local MAC
+sourceCpp("QuasiNewtonTest.cpp") # server
 
 #-------------------------- Raw Estimation of Dependence Model Parameters
 initial_xi <- function(m=NULL, avg_delta=NULL){
@@ -88,8 +89,8 @@ one.job.param <- function(job=NULL, nTasks=NULL, nCore=NULL, iii=NULL,
     #                     Parameter Estimation                      #
     #################################################################
     parinitialEst  <- ParInitCalcu(y_log=y_log, m=mm, DesignX=DesignXEst)
-    resEst <- SeqNewtonCpp(parinitialEst, y_log, mm, DesignXEst, 
-                           stepsize, 1000, mytol)
+    resEst <- SeqQuasiNWCpp(parinitialEst, y_log, mm, DesignXEst, 
+                            stepsize, 1000, mytol)
     parEst <- as.vector(resEst$parEst)
     LogLEst <- LoglikCalcCpp(parEst, DesignXEst, y_log, mm, 
                              conv = mytol, stepNR=stepsize[2])
@@ -98,7 +99,7 @@ one.job.param <- function(job=NULL, nTasks=NULL, nCore=NULL, iii=NULL,
     timecost <- difftime(tim2, tim1, units="mins")
     cat("\n No.job", job, "task", subid, 
         "within", nSubtasks, "(subtasks) completed within", 
-        timecost, "mins!")  
+        timecost, "mins for", iii, "set!")  
     #################################################################
     #                         Result Return                         #
     #################################################################
@@ -141,23 +142,34 @@ useMultiCore <- function(nTasks=NULL, nCore=NULL, iii=NULL,
 ###################################
 
 #----- Simulation Parameters (K=5)
-Ti     <- 600
-K      <- 3
-ss     <- 3
+nYears <- 10
+ss     <- 365
+Ti     <- nYears*ss
+K      <- 5
 
-A     <- c(-0.5,  0.8)
-Alpha <- c(-0.8, -0.5)
-B     <- c(-0.4, -0.5)
-D     <- c( 0.9,  0.9)
-parT  <- c(A, Alpha, B, D, 1.7,  0.9,  0.7,  0.4)
+probT <- rep(1/K, K)
+tmpgamm <- cumsum(probT)[1:(K-1)]
+A     <- log(tmpgamm/(1-tmpgamm))
+# [1] -1.3862944 -0.4054651  0.4054651  1.3862944
+Alpha <- c( 0.1,  0.1,  0.1,   0.1)
+B     <- c(-0.1, -0.2, -0.15, -0.3)
+D     <- c( 0.2,  0.1,  0.15,  0.3)
+parT  <- c(A,
+           Alpha,
+           B, D,
+           2.8,  2.2,  1.9,  1.0,
+           1.3,  1.2,  0.9,  0.6,
+           0.8,  0.8,  0.5,  0.7,
+           0.5,  0.4,  0.3,  0.3)
 
 #----- computation setting
 maxit    <- 1000
-stepsize <- c(1, 0.5)
+stepsize <- c(1,1)
 mytol    <- 1e-05
 
-nCore  <- 5
-nTasks <- 1000
+nSim   <- 1
+nCore  <- 25
+nTasks <- 50
 
 #----- Design Matrix
 AValue     <- rep(1, Ti)
@@ -173,19 +185,8 @@ for(iii in 1:nSim){
                              parT=parT, Ti=Ti, K=K,
                              DesignXT=DesignXT, DesignXEst=DesignXEst,
                              stepsize=stepsize, mytol=mytol)
+  save(ParamFinal, file=paste("mtmparam/MTM_TRDSEA_K",
+                              K, "_T", Ti, "_SS", ss, "_ParamEst_PositiveCorr_H0_",
+                              iii, "th.RData", sep=""))
 }
-
-# number of NA's 
-length(which(is.na(ParamFinal[,7])))/nTasks
-
-# mean
-colMeans(ParamFinal[,7:dim(ParamFinal)[2]])
-# bias
-colMeans(ParamFinal[,7:dim(ParamFinal)[2]]) - parT
-# sd
-apply(ParamFinal[,7:dim(ParamFinal)[2]], 2, sd)
-# mse
-sum((ParamFinal[,7:dim(ParamFinal)[2]] - colMeans(ParamFinal[,7:dim(ParamFinal)[2]]))^2)/nTasks
-
-
 
