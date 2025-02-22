@@ -16,57 +16,6 @@ library(scales)
 sourceCpp("src/QuasiNewton.cpp")
 source("tools/rfunc.R")
 
-#-------------------------- periodogram frequency plot
-myperiodogram = function(mydat, candPeriod=NULL, TableReturn=FALSE){
-  
-  require(astsa)
-  
-  u = factor(mydat) # first, input the data as factors and then 
-  x = model.matrix(~u-1)[,1:3] # make an indicator matrix
-  Var = var(x) # var-cov matrix
-  xspec = mvspec(x, spans=c(7,7), plot=FALSE)
-  fxxr = Re(xspec$fxx)  # fxxr is real(fxx)
-  # compute Q = Var^-1/2
-  ev = eigen(Var)
-  Q = ev$vectors%*%diag(1/sqrt(ev$values))%*%t(ev$vectors)
-  # compute spec envelope and scale vectors
-  num = xspec$n.used # sample size used for FFT
-  nfreq = length(xspec$freq) # number of freqs used
-  specenv = matrix(0,nfreq,1) # initialize the spec envelope 
-  beta = matrix(0,nfreq,3) # initialize the scale vectors 
-  for (k in 1:nfreq){
-    ev = eigen(2*Q%*%fxxr[,,k]%*%Q/num, symmetric=TRUE)
-    specenv[k] = ev$values[1] # spec env at freq k/n is max evalue 
-    b = Q%*%ev$vectors[,1] # beta at freq k/n
-    beta[k,] = b/sqrt(sum(b^2)) # helps to normalize beta
-  }
-  # output and graphics
-  frequency = xspec$freq
-  plot(frequency, 100*specenv, type="l", xlim=c(0,0.05),
-       xlab="Frequency", ylab="Spectral Envelope (%)") 
-  # add significance threshold to plot
-  m = xspec$kernel$m
-  etainv = sqrt(sum(xspec$kernel[-m:m]^2)) 
-  thresh=100*(2/num)*exp(qnorm(.9999)*etainv)
-  abline(h=thresh, lty=6, col=4)
-  # text(0.1-0.02, thresh+0.02, round(thresh,3), xpd=TRUE, adj=1, col=4)
-  
-  if(!is.null(candPeriod)){
-    for(i in 1:length(candPeriod)){
-      abline(v=1/candPeriod[i], col="red", lty="dashed")
-      text(1/candPeriod[i]+0.007, 100*max(specenv)-0.01, paste0("Frequence = 1/", candPeriod[i]),xpd=TRUE,adj=1, col="red")
-    }
-  }
-  
-  # details
-  if(TableReturn){
-    output = cbind(frequency, specenv, beta)
-    colnames(output) = c("freq","specenv", "A", "C", "G") 
-    return(output)
-  }
-  
-}
-
 myTSK11_K5_mean = function(dat2, TargetHour, pm1, pm2, tauEst, mytitles){
   
   p = which(dat2$V1>=1978 & dat2$V1 <=1979)
@@ -133,7 +82,7 @@ myTSK11_K5_mean = function(dat2, TargetHour, pm1, pm2, tauEst, mytitles){
 ################################################################################
 ################################################################################
 
-TargetHour = 15
+TargetHour = 9
 mytitles = paste0("Hour ", TargetHour)
 
 ################################################################################
@@ -142,7 +91,7 @@ mytitles = paste0("Hour ", TargetHour)
 ## 1978 and 1979 (Two Years Plot with fitted mean structure)
 
 setEPS()
-postscript(paste0("Application/CloudDat1979mean_Hour", TargetHour, ".eps"), width =  16, height = 8)
+postscript(paste0("application/CloudDat1979mean_Hour", TargetHour, ".eps"), width =  16, height = 8)
 
 
 # m <- matrix(c(1,2,3,4,5,5), nrow = 3, ncol = 2, byrow = TRUE)
@@ -150,11 +99,11 @@ postscript(paste0("Application/CloudDat1979mean_Hour", TargetHour, ".eps"), widt
 
 par(mfrow=c(1,1), cex.axis=2.5, cex.lab=2.5, mar=c(5,5,4,4))
 
-# load(paste0("Application/ApplicationNeed_Hour", TargetHour, "_Model1.RData"))
-# myTSK11_K5_mean(dat2, TargetHour, pm_M1_H0, pm_M1_Ha, tauEst_M1, mytitles=mytitles)
+load(paste0("application/ApplicationNeed_Hour", TargetHour, "_Model1.RData"))
+myTSK11_K5_mean(dat2, TargetHour, pm_M1_H0, pm_M1_Ha, tauEst_M1, mytitles=mytitles)
 
-load(paste0("Application/ApplicationNeed_Hour", TargetHour, "_Model2.RData"))
-myTSK11_K5_mean(dat2, TargetHour, pm_M2_H0, pm_M2_Ha, tauEst_M2, mytitles=mytitles)
+# load(paste0("application/ApplicationNeed_Hour", TargetHour, "_Model2.RData"))
+# myTSK11_K5_mean(dat2, TargetHour, pm_M2_H0, pm_M2_Ha, tauEst_M2, mytitles=mytitles)
 
 # par(cex.axis=2.5, cex.lab=2.5, mar=c(1,1,1,1))
 # plot(1, type = "n", axes=FALSE, xlab="", ylab="")
@@ -169,13 +118,12 @@ dev.off()
 #######################         Figure 6               #########################
 ################################################################################
 
-load(paste0("Application/ApplicationNeed_Hour", TargetHour, "_Model1.RData"))
-load(paste0("Application/ApplicationNeed_Hour", TargetHour, "_Model2.RData"))
+load(paste0("application/ApplicationNeed_Hour", TargetHour, "_Model2.RData"))
 Ti = dim(dat2)[1]
 K = 5
 
 setEPS()
-postscript(paste0("Application/fittedprob_Hour", TargetHour, ".eps"), width = 18, height = 8)
+postscript(paste0("application/fittedprob_Hour", TargetHour, ".eps"), width = 18, height = 8)
 
 par(mfrow=c(2,3), mar=c(4,5,4,4))
 
@@ -230,10 +178,12 @@ title("Log-likelihood ratio statistics", line = 1, cex.main = 2.5)
 dev.off()
 
 
-
+################################################################################
+#######################         Figure S6              #########################
+################################################################################
 
 setEPS()
-postscript(paste0("Application/Lambda_max_Hour", TargetHour, "_sup.eps"), width =  16, height = 8)
+postscript(paste0("application/Lambda_max_Hour", TargetHour, "_sup.eps"), width =  16, height = 8)
 
 par(mfrow=c(1,1), cex.axis=2.5, cex.lab=2.5, mar=c(6,6,4,4))
 
@@ -253,6 +203,7 @@ text(x=1300, y=19.453+9, labels="95th Percentile", cex = 2.5)
 title(xlab = "Time", line = 4, cex.main = 2.5)
 
 dev.off()
+
 
 ################################################################################
 #######################        Inference               #########################
@@ -287,7 +238,7 @@ mean(abs(u))
 
 myPIT_hist = function(TargetHour, H){
   
-  load(paste0("Application/ApplicationNeed_Hour", TargetHour, "_Model1.RData"))
+  load(paste0("application/ApplicationNeed_Hour", TargetHour, "_Model1.RData"))
   
   Ti = dim(dat2)[1]
   K = 5
@@ -332,7 +283,7 @@ myPIT_hist = function(TargetHour, H){
 
 
 setEPS()
-postscript(paste0("Application/CanadaCloudPIT_", TargetHour, ".eps"), width = 16, height = 8)
+postscript(paste0("application/CanadaCloudPIT_", TargetHour, ".eps"), width = 16, height = 8)
 
 par(mfrow=c(1,1), cex.axis=2.5, cex.lab=2.5, mar=c(5,5,4,4))
 myPIT_hist(TargetHour=TargetHour, H=50)
@@ -346,10 +297,10 @@ dev.off()
 # one-step-ahead prediction residuals plots
 
 setEPS()
-postscript(paste0("Application/Pc_Acf_", TargetHour, ".eps"), width = 16, height = 10)
+postscript(paste0("application/Pc_Acf_", TargetHour, ".eps"), width = 16, height = 10)
 
 par(mfcol=c(2,2), cex.axis=2.5, cex.lab=2.5, mar=c(6,7,5,5))
-load(paste0("Application/ApplicationNeed_Hour", TargetHour, "_Model1.RData"))
+load(paste0("application/ApplicationNeed_Hour", TargetHour, "_Model1.RData"))
 Ti = dim(dat2)[1]
 K = 5
 ## Conditional Residuals ACF plots
