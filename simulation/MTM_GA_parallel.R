@@ -5,7 +5,7 @@ library(doMC)
 library(Rcpp)
 library(RcppArmadillo)
 
-sourceCpp("Tools/QuasiNewton.cpp")
+sourceCpp("src/QuasiNewton.cpp")
 
 #-------------------------- Raw Estimation of Dependence Model Parameters
 initial_xi <- function(m=NULL, avg_delta=NULL){
@@ -138,6 +138,7 @@ NewPop <- function(pop=NULL, fit=NULL, Pc=NULL, Pm=NULL, Mjmp=NULL, maxgen=NULL)
   bestchrom <- pop[which.max(fit)]
   
   res <- c(bestfit, bestchrom)
+  
   return(res)
 }
 
@@ -167,12 +168,14 @@ NewPop.parallel = function(pop, fit, Pc, Pm, Mjmp, maxgen){
 
 GAfit.one.job = function(job=i, nTasks=nTasks, nCore=nCore,
                          tau, DesignXH0, y_log, mm, stepsize, mytol){
+  
   nSubtasks <- round(nTasks/nCore)
   RES <- rep(NA, nSubtasks)
   for(subid in 1:nSubtasks){
     tauEst = tau[(job-1)*nSubtasks+subid]
     RES[subid] = GAfit(tau=tauEst, DesignXH0, y_log, mm, stepsize, mytol)
   }
+  
   return(RES)
 }
 
@@ -341,11 +344,11 @@ checkConv <- function(a=NULL, maxconv=NULL, mytol=NULL){
 ##### Main Script Starts Here #####
 ###################################
 
-dat <- read.table(file = "5CanadaCloudData/hourly_day.txt")
-dat1 <- dat[dat$V1>=1965 & dat$V1 <=1994,]
+dat = read.table(file = "~/OneDrive - University of Louisiana Lafayette/data/CloudCover/FortStJohnAirport/hourly_day.txt")
+dat1 = dat[dat$V1>=1965 & dat$V1 <=1994,]
 
-m <- as.numeric(as.character(dat1$V5))
-dat1$V5 <-m
+m = as.numeric(as.character(dat1$V5))
+dat1$V5 = m
 
 mm <- m
 mm[m==1]  <- 0
