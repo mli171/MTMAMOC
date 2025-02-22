@@ -1,3 +1,5 @@
+rm(list = ls())
+
 library(VGAM)
 library(mvtnorm)
 library(foreach)
@@ -6,53 +8,7 @@ library(Rcpp)
 library(RcppArmadillo)
 
 sourceCpp("src/QuasiNewton.cpp")
-
-#-------------------------- Raw Estimation of Dependence Model Parameters
-initial_xi <- function(m=NULL, avg_delta=NULL){
-  
-  # Naive Transition Matrix Estimation
-  ct <- matrix(0, K, K)  # previous*current
-  for(i in 1:K){
-    p <- which(m==(i-1)) # where is i-1 category
-    for (j in 1:length(p)){
-      ct[i,m[p[j]+1]+1] <- ct[i,m[p[j]+1]+1] + 1
-    }
-  }
-  pc_avg <- ct/rowSums(ct)   # pc_avg: j*k
-  
-  if(any(pc_avg == 0)){
-    cat("Zero Exist in Transition Matrix!!!\n")
-    pc_avg[which(pc_avg==0)] <- 0.00001
-    # break
-  }
-  xi <- matrix(0, K-1, K-1) # previous*current
-  for(j in 1:(K-1)){
-    for(k in 1:(K-1)){
-      # calculate xi
-      xi[j,k] <- log(pc_avg[j,k]/pc_avg[j,K])-avg_delta[k]
-    }
-  }
-  return(t(xi)) # res: current*previous
-}
-
-#-------------------------- Initial Values for All Model Parameters
-ParInitCalcu <- function(y_log=NULL, m=NULL, DesignX=NULL){
-  
-  require(VGAM)
-  
-  K <- dim(y_log)[2]
-  len_mean <- dim(DesignX)[2]
-  if(len_mean == 1){
-    fit.d <- vglm(y_log ~ 1, cumulative(parallel=FALSE))
-  }else{
-    fit.d <- vglm(y_log ~ DesignX[,2:dim(DesignX)[2]], cumulative(parallel=FALSE))
-  }
-  avg_delta <- colMeans(fit.d@fitted.values)
-  XiInit <- initial_xi(m=m, avg_delta=avg_delta)
-  
-  parinit <- c(as.vector(fit.d@coefficients), as.vector(XiInit))
-  return(parinit)
-}
+source("tools/rfunc.R")
 
 #-------------------------- Genetic Algorithm fit function
 GAfit <- function(tau=NULL, DesignXH0=NULL, y_log=NULL, mm=NULL, 
@@ -340,34 +296,44 @@ checkConv <- function(a=NULL, maxconv=NULL, mytol=NULL){
 }
 
 
-###################################
-##### Main Script Starts Here #####
-###################################
+################################################################################
+################################################################################
 
-dat = read.table(file = "~/OneDrive - University of Louisiana Lafayette/data/CloudCover/FortStJohnAirport/hourly_day.txt")
+TargetHour = 9
+
+################################################################################
+################################################################################
+
+datdir = "~/OneDrive - University of Louisiana Lafayette/data/"
+dat = read.table(file=paste0(datdir, "CloudCover/FortStJohnAirport/hourly_day.txt"))
+dat$Date = ISOdate(year = dat$V1, month = dat$V2, day = dat$V3, hour = dat$V4)
+
+## filter1: 30 years data from 1965 to 1994
 dat1 = dat[dat$V1>=1965 & dat$V1 <=1994,]
+dat1$V5 = as.numeric(as.character(dat1$V5))
 
-m = as.numeric(as.character(dat1$V5))
-dat1$V5 = m
+## filter2: to exclude Feb 29 for exact period T=365
+premain = which(!(dat1$V2 == 2 & dat1$V3 == 29))
+dat1 = dat1[premain, ]
 
-mm <- m
-mm[m==1]  <- 0
-mm[m==2]  <- 1
-mm[m==3]  <- 1
-mm[m==4]  <- 2
-mm[m==5]  <- 2
-mm[m==6]  <- 2
-mm[m==7]  <- 3
-mm[m==8]  <- 3
-mm[m==9]  <- 4
-mm[m==10] <- 4
+## filter3: to ONLY include the target hour
+dat2 = dat1[dat1$V4==TargetHour, ]
+dat2$V6 = catg_agg(dat2$V5)
 
-dat1$V6 <- mm
+
+################################################################################
+################################################################################
+##########                       Model Fitting                        ##########
+################################################################################
+################################################################################
+
+mm = dat2$V6
+m = dat2$V5
 
 #-------------------- Form Data Set -------------------#
 Ti     <- length(mm)
 K      <- max(mm) + 1
-ss     <- 8*365
+ss     <- 365
 
 y_log <- matrix(0, nrow=Ti, ncol=K)
 for (tt in 1:Ti) {y_log[tt,mm[tt]+1] <- 1}
@@ -410,12 +376,12 @@ rownames(parMatrix1) <- c(paste("A", 1:(K-1), sep=""),
                           paste("B", 1:(K-1), sep=""),
                           paste("D", 1:(K-1), sep=""),
                           rep("xi", (K-1)^2))
-round(parMatrix1, digits=4)
+# round(parMatrix1, digits=4)
 
 logLH0     <- LoglikCalcCpp(resEstH0$parEst, DesignXH0, y_log, 
                             mm, conv = mytol, stepNR=stepsize[2])
 logLH0
-# [1] -82159.04
+# [1] -15051.68
 
 
 
@@ -425,18 +391,18 @@ nCoreuse = 5
 lc  <- floor(0.05*Ti) # 4382
 uc  <- floor(0.95*Ti) # 83273
 tmp <- lc:uc
-tauClc <- lc:(lc+(floor(length(tmp)/nCoreuse) + 1)*nCoreuse-1) # From 730 to 83281
+tauClc <- lc:(lc+(floor(length(tmp)/nCoreuse) + 1)*nCoreuse-1) # From 547 to 10406
 range(tauClc)
-# [1]  4382 83281
+# [1]   547 10406
 
 # nIsland    <- nYears   # number of island
 nIsland    <- 5
-IslandSize <- 20   # number of individuals in each island
-Pc         <- 0.9  # prob of corss-over 
-Pm         <- 0.1  # prob of mutation
-maxgen     <- 4    # for each subpopulation, after maxgen then apply migration
-maxMig     <- 15   # maximum migration times
-maxconv    <- 4    # number of consecutive migrations
+IslandSize <- 20    # number of individuals in each island
+Pc         <- 0.9   # prob of corss-over 
+Pm         <- 0.1   # prob of mutation
+maxgen     <- 5     # for each subpopulation, after maxgen then apply migration
+maxMig     <- 15    # maximum migration times
+maxconv    <- 10    # number of consecutive migrations
 Mjmp       <- 15    # Mutation Jump from original candidate time point
 mytol      <- 0.00001
 
@@ -449,75 +415,139 @@ finaltim2 <- Sys.time()
 
 # ==== Step 1 and 2: Start to initialize population and calculate fitness ...
 # 1. Multicores working, please wait ... 
-# 2. nTasks = 100 	 nCore = 5 	 Total Time = 0.6066463 hours
-# Completed within 36.39879 secs.
+# 2. nTasks = 100 	 nCore = 5 	 Total Time = 0.06857611 hours
+# Completed within 4.114572 secs.
 # ==== Step 3,4 and 5: No. 1 migration ...
 # 1. Multicores working, please wait ... 
-# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.0892129 hours
-# New Pop completed within 5.352857 secs.
-# Migration completed within 0.0001299381 secs. 
+# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01454697 hours
+# New Pop completed within 52.36952 secs.
+# Migration completed within 0.0001130104 secs. 
 # 
-# Bchrom: 40613 39462 39462 39462 38066
-# Chrosome: 39462 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+# Bchrom: 5327 4841 4841 5007 4841
+# Chrosome: 5007 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 # ==== Step 3,4 and 5: No. 2 migration ...
 # 1. Multicores working, please wait ... 
-# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.0926318 hours
-# New Pop completed within 5.557912 secs.
-# Migration completed within 9.298325e-05 secs. 
+# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01449756 hours
+# New Pop completed within 52.19156 secs.
+# Migration completed within 0.0001459122 secs. 
 # 
-# Bchrom: 39462 39462 39462 39462 39462
-# Chrosome: 39462 39462 0 0 0 0 0 0 0 0 0 0 0 0 0
+# Bchrom: 4841 4841 4841 5007 5007
+# Chrosome: 5007 5007 0 0 0 0 0 0 0 0 0 0 0 0 0
 # ==== Step 3,4 and 5: No. 3 migration ...
 # 1. Multicores working, please wait ... 
-# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.09259829 hours
-# New Pop completed within 5.555903 secs.
-# Migration completed within 0.0001058578 secs. 
+# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01400034 hours
+# New Pop completed within 50.40162 secs.
+# Migration completed within 0.0001468658 secs. 
 # 
-# Bchrom: 39462 39462 39462 39462 39462
-# Chrosome: 39462 39462 39462 0 0 0 0 0 0 0 0 0 0 0 0
+# Bchrom: 4872 4841 5007 5007 5007
+# Chrosome: 5007 5007 5007 0 0 0 0 0 0 0 0 0 0 0 0
 # ==== Step 3,4 and 5: No. 4 migration ...
 # 1. Multicores working, please wait ... 
-# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.0948703 hours
-# New Pop completed within 5.692226 secs.
-# Migration completed within 0.0001370907 secs. 
+# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01415242 hours
+# New Pop completed within 50.94907 secs.
+# Migration completed within 0.0001320839 secs. 
 # 
-# Bchrom: 40150 39462 39462 39462 39462
-# Chrosome: 39462 39462 39462 40150 0 0 0 0 0 0 0 0 0 0 0
+# Bchrom: 5007 5007 5007 5007 5009
+# Chrosome: 5007 5007 5007 5009 0 0 0 0 0 0 0 0 0 0 0
 # ==== Step 3,4 and 5: No. 5 migration ...
 # 1. Multicores working, please wait ... 
-# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.09686014 hours
-# New Pop completed within 5.811613 secs.
-# Migration completed within 0.0001440048 secs. 
+# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01494836 hours
+# New Pop completed within 53.81447 secs.
+# Migration completed within 0.0001561642 secs. 
 # 
-# Bchrom: 40150 39462 39462 39462 39462
-# Chrosome: 39462 39462 39462 40150 40150 0 0 0 0 0 0 0 0 0 0
+# Bchrom: 5007 5009 5084 5007 5009
+# Chrosome: 5007 5007 5007 5009 5084 0 0 0 0 0 0 0 0 0 0
 # ==== Step 3,4 and 5: No. 6 migration ...
 # 1. Multicores working, please wait ... 
-# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.09187446 hours
-# New Pop completed within 5.512473 secs.
-# Migration completed within 0.0001070499 secs. 
+# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01453066 hours
+# New Pop completed within 52.31076 secs.
+# Migration completed within 0.0001718998 secs. 
 # 
-# Bchrom: 40150 40150 39462 39462 39462
-# Chrosome: 39462 39462 39462 40150 40150 40150 0 0 0 0 0 0 0 0 0
+# Bchrom: 5007 5084 5084 5016 5009
+# Chrosome: 5007 5007 5007 5009 5084 5016 0 0 0 0 0 0 0 0 0
 # ==== Step 3,4 and 5: No. 7 migration ...
 # 1. Multicores working, please wait ... 
-# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.09247447 hours
-# New Pop completed within 5.548474 secs.
-# Migration completed within 0.0001499653 secs. 
+# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01462931 hours
+# New Pop completed within 52.66589 secs.
+# Migration completed within 0.0004298687 secs. 
+# 
+# Bchrom: 5016 5084 5084 5016 5084
+# Chrosome: 5007 5007 5007 5009 5084 5016 5016 0 0 0 0 0 0 0 0
+# ==== Step 3,4 and 5: No. 8 migration ...
+# 1. Multicores working, please wait ... 
+# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01492087 hours
+# New Pop completed within 53.71557 secs.
+# Migration completed within 0.0001420975 secs. 
+# 
+# Bchrom: 5016 5084 5084 5016 5084
+# Chrosome: 5007 5007 5007 5009 5084 5016 5016 5016 0 0 0 0 0 0 0
+# ==== Step 3,4 and 5: No. 9 migration ...
+# 1. Multicores working, please wait ... 
+# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01488798 hours
+# New Pop completed within 53.59712 secs.
+# Migration completed within 0.0001330376 secs. 
+# 
+# Bchrom: 5016 5084 5016 5016 5016
+# Chrosome: 5007 5007 5007 5009 5084 5016 5016 5016 5016 0 0 0 0 0 0
+# ==== Step 3,4 and 5: No. 10 migration ...
+# 1. Multicores working, please wait ... 
+# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01462548 hours
+# New Pop completed within 52.65215 secs.
+# Migration completed within 0.0001561642 secs. 
+# 
+# Bchrom: 5016 5016 5016 5016 5016
+# Chrosome: 5007 5007 5007 5009 5084 5016 5016 5016 5016 5016 0 0 0 0 0
+# ==== Step 3,4 and 5: No. 11 migration ...
+# 1. Multicores working, please wait ... 
+# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01418539 hours
+# New Pop completed within 51.06775 secs.
+# Migration completed within 0.0001749992 secs. 
+# 
+# Bchrom: 5016 5016 5016 5016 5016
+# Chrosome: 5007 5007 5007 5009 5084 5016 5016 5016 5016 5016 5016 0 0 0 0
+# ==== Step 3,4 and 5: No. 12 migration ...
+# 1. Multicores working, please wait ... 
+# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01500815 hours
+# New Pop completed within 54.02972 secs.
+# Migration completed within 0.0001468658 secs. 
+# 
+# Bchrom: 5016 5016 5016 5016 5016
+# Chrosome: 5007 5007 5007 5009 5084 5016 5016 5016 5016 5016 5016 5016 0 0 0
+# ==== Step 3,4 and 5: No. 13 migration ...
+# 1. Multicores working, please wait ... 
+# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01452925 hours
+# New Pop completed within 52.30567 secs.
+# Migration completed within 0.0002779961 secs. 
+# 
+# Bchrom: 5016 5016 5016 5016 5016
+# Chrosome: 5007 5007 5007 5009 5084 5016 5016 5016 5016 5016 5016 5016 5016 0 0
+# ==== Step 3,4 and 5: No. 14 migration ...
+# 1. Multicores working, please wait ... 
+# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01472402 hours
+# New Pop completed within 53.00684 secs.
+# Migration completed within 0.0002520084 secs. 
+# 
+# Bchrom: 5024 5016 5016 5016 5016
+# Chrosome: 5007 5007 5007 5009 5084 5016 5016 5016 5016 5016 5016 5016 5016 5024 0
+# ==== Step 3,4 and 5: No. 15 migration ...
+# 1. Multicores working, please wait ... 
+# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01479905 hours
+# New Pop completed within 53.27692 secs.
+# Migration completed within 0.0002470016 secs.
 
 
 finaltim2 - finaltim1
-# Time difference of 1.25718 hours
+# Time difference of 17.25397 mins
 
 result
 # $bestfit
-# [1] -82110.68
+# [1] -15012.23
 # 
 # $bestchrom
-# [1] 40150
+# [1] 5024
 # 
 # $countMig
-# [1] 7
+# [1] 15
 
 
 
@@ -532,11 +562,15 @@ parHa      <- resEstHa$parEst
 logLHa     <- LoglikCalcCpp(parHa, DesignXHa, y_log, mm, 
                             conv = mytol, stepNR=stepsize[2])
 logLHa
-# [1] -82110.68
+# [1] -15012.23
 LambdaStat.Est <- -2*(logLH0 - logLHa)
 LambdaStat.Est
-# [1] 96.71995
+# [1] 78.89487
 
 # estimated changepoint related date
-dat1[tauEst,]
-# 43078 1978  9 28 14  7  3
+dat2[tauEst,]
+#         V1 V2 V3 V4 V5                Date V6
+# 43137 1978 10  6  9  8 1978-10-06 09:00:00  3
+
+tauEst
+# [1] 5024

@@ -10,62 +10,8 @@ library(ggplot2)
 library(foreach)
 library(doMC)
 
-sourceCpp("~/Desktop/MTM/MTM_CPT/MTM_CPT/Tools/QuasiNewton.cpp")
-
-#-------------------------- Raw Estimation of Dependence Model Parameters
-initial_xi <- function(m=NULL, K=NULL, avg_delta=NULL){
-  
-  # Naive Transition Matrix Estimation
-  ct <- matrix(0, K, K)  # previous*current
-  for(i in 1:K){
-    p <- which(m==(i-1)) # where is i-1 category
-    for (j in 1:length(p)){
-      ct[i,m[p[j]+1]+1] <- ct[i,m[p[j]+1]+1] + 1
-    }
-  }
-  pc_avg <- ct/rowSums(ct)   # pc_avg: j*k
-  
-  if(any(pc_avg == 0)){
-    cat("Zero Exist in Transition Matrix!!!\n")
-    pc_avg[which(pc_avg==0)] <- 0.00001
-    # break
-  }
-  xi <- matrix(0, K-1, K-1) # previous*current
-  for(j in 1:(K-1)){
-    for(k in 1:(K-1)){
-      # calculate xi
-      xi[j,k] <- log(pc_avg[j,k]/pc_avg[j,K])-avg_delta[k]
-    }
-  }
-  return(t(xi)) # res: current*previous
-}
-
-#-------------------------- Initial Values for All Model Parameters
-ParInitCalcu <- function(y_log=NULL, m=NULL, DesignX=NULL, DesignXH0=NULL){
-  
-  require(VGAM)
-  
-  K <- dim(y_log)[2]
-  len_mean <- dim(DesignX)[2]
-  if(len_mean == 1){
-    fit.d <- try(vglm(y_log ~ 1, cumulative(parallel=FALSE)))
-    MarginalParam = as.vector(fit.d@coefficients)
-  }else{
-    fit.d <- try(vglm(y_log ~ DesignX[,2:dim(DesignX)[2]], cumulative(parallel=FALSE)))
-    if(class(fit.d) == "try-error"){
-      fit.d <- vglm(y_log ~ DesignXH0[,2:dim(DesignXH0)[2]], cumulative(parallel=FALSE))
-      MarginalParam = c(as.vector(fit.d@coefficients), rep(0, K-1))
-    }else{
-      MarginalParam = as.vector(fit.d@coefficients)
-    }
-  }
-  avg_delta <- colMeans(fit.d@fitted.values)
-  XiInit <- initial_xi(m=m, K=K, avg_delta=avg_delta)
-  
-  parinit <- c(MarginalParam, as.vector(XiInit))
-  return(parinit)
-}
-
+sourceCpp("src/QuasiNewton.cpp")
+source("tools/rfunc.R")
 
 #-------------------------- Detection single job
 one.MTM.LogL <- function(job=NULL, nTasks=NULL, nCore=NULL,
@@ -136,35 +82,11 @@ useMultiCore <- function(nTasks=NULL, nCore=NULL,
   return(FinalRes)
 }
 
-#-------------------------- Aggregation of categories
-catg_agg = function(m){
-  
-  mm = rep(NA, length(m))
-  
-  mm[m==0]  <- 0
-  mm[m==1]  <- 1
-  mm[m==2]  <- 1
-  mm[m==3]  <- 1
-  mm[m==4]  <- 2
-  mm[m==5]  <- 2
-  mm[m==6]  <- 2
-  mm[m==7]  <- 3
-  mm[m==8]  <- 3
-  mm[m==9]  <- 3
-  mm[m==10] <- 4
-  
-  if (any(is.na(mm))) {
-    cat("\n Warning: NA exist in the series! \n")
-  }
-  
-  return(mm)
-}
-
 ###################################
 ##### Main Script Starts Here #####
 ###################################
 
-dat = read.table(file = "~/Desktop/MTM/MTM_CPT/data/hourly_day.txt")
+dat = read.table(file = "~/Desktop/MTM/applicationres/hourly_day.txt")
 dat$Date = ISOdate(year = dat$V1, month = dat$V2, day = dat$V3, hour = dat$V4)
 
 ## filter1: 30 years data from 1965 to 1994
@@ -209,13 +131,18 @@ for(iii in 1:length(TargetHourClc)){
   BValue     = cos(2*pi*(1:Ti)/ss)
   DValue     = sin(2*pi*(1:Ti)/ss)
   
-  #---- Parallel computing (Model 1)
-  DesignXH0  = cbind(AValue, BValue, DValue)
+  # #---- Parallel computing (Model 1)
+  # DesignXH0  = cbind(AValue, BValue, DValue)
+  
+  #---- Parallel computing (Model 2)
+  DesignXH0  = cbind(AValue, TrendValue, BValue, DValue)
+  
   CPCloudHaClc = useMultiCore(nTasks=nTasks, nCore=nCoreuse,
                               y_log=y_log, mm=mm,
                               tauClc=tauClc, DesignXH0=DesignXH0,
                               stepsize=stepsize, mytol=mytol)
   
-  save(CPCloudHaClc, file=paste0("Desktop/MTM/MTMApplication_CandaCloudK5_SEA_30Years65to94_Hour", TargetHour,".RData"))
+  # save(CPCloudHaClc, file=paste0("~/Desktop/MTM/applicationres/MTMApplication_CandaCloudK5_SEA_30Years65to94_Hour", TargetHour,".RData")) # (Model 1)
+  save(CPCloudHaClc, file=paste0("~/Desktop/MTM/applicationres/MTMApplication_CandaCloudK5_FULL_30Years65to94_Hour", TargetHour,".RData")) # (Model 2)
 }
 
