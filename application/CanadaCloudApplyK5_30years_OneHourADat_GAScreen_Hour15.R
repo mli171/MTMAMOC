@@ -388,8 +388,8 @@ logLH0
 #---- Tasks formulate
 nCoreuse = 5
 
-lc  <- floor(0.05*Ti) # 4382
-uc  <- floor(0.95*Ti) # 83273
+lc  <- floor(0.05*Ti) # 547
+uc  <- floor(0.95*Ti) # 10406
 tmp <- lc:uc
 tauClc <- lc:(lc+(floor(length(tmp)/nCoreuse) + 1)*nCoreuse-1) # From 547 to 10406
 range(tauClc)
@@ -415,139 +415,99 @@ finaltim2 <- Sys.time()
 
 # ==== Step 1 and 2: Start to initialize population and calculate fitness ...
 # 1. Multicores working, please wait ... 
-# 2. nTasks = 100 	 nCore = 5 	 Total Time = 0.06857611 hours
-# Completed within 4.114572 secs.
+# 2. nTasks = 100 	 nCore = 5 	 Total Time = 0.07712947 hours
+# Completed within 4.627861 secs.
 # ==== Step 3,4 and 5: No. 1 migration ...
 # 1. Multicores working, please wait ... 
-# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01454697 hours
-# New Pop completed within 52.36952 secs.
-# Migration completed within 0.0001130104 secs. 
+# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01572216 hours
+# New Pop completed within 56.60031 secs.
+# Migration completed within 0.0001831055 secs. 
 # 
-# Bchrom: 5327 4841 4841 5007 4841
-# Chrosome: 5007 0 0 0 0 0 0 0 0 0 0 0 0 0 0
+# Bchrom: 5181 5042 5161 5020 5042
+# Chrosome: 5042 0 0 0 0 0 0 0 0 0 0 0 0 0 0
 # ==== Step 3,4 and 5: No. 2 migration ...
 # 1. Multicores working, please wait ... 
-# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01449756 hours
-# New Pop completed within 52.19156 secs.
-# Migration completed within 0.0001459122 secs. 
+# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01551512 hours
+# New Pop completed within 55.85492 secs.
+# Migration completed within 0.0001440048 secs. 
 # 
-# Bchrom: 4841 4841 4841 5007 5007
-# Chrosome: 5007 5007 0 0 0 0 0 0 0 0 0 0 0 0 0
+# Bchrom: 5042 5042 5042 5181 5042
+# Chrosome: 5042 5042 0 0 0 0 0 0 0 0 0 0 0 0 0
 # ==== Step 3,4 and 5: No. 3 migration ...
 # 1. Multicores working, please wait ... 
-# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01400034 hours
-# New Pop completed within 50.40162 secs.
-# Migration completed within 0.0001468658 secs. 
+# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01556163 hours
+# New Pop completed within 56.02226 secs.
+# Migration completed within 0.0001530647 secs. 
 # 
-# Bchrom: 4872 4841 5007 5007 5007
-# Chrosome: 5007 5007 5007 0 0 0 0 0 0 0 0 0 0 0 0
+# Bchrom: 5042 5042 5042 5042 5042
+# Chrosome: 5042 5042 5042 0 0 0 0 0 0 0 0 0 0 0 0
 # ==== Step 3,4 and 5: No. 4 migration ...
 # 1. Multicores working, please wait ... 
-# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01415242 hours
-# New Pop completed within 50.94907 secs.
-# Migration completed within 0.0001320839 secs. 
+# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01564964 hours
+# New Pop completed within 56.33912 secs.
+# Migration completed within 0.0001561642 secs. 
 # 
-# Bchrom: 5007 5007 5007 5007 5009
-# Chrosome: 5007 5007 5007 5009 0 0 0 0 0 0 0 0 0 0 0
+# Bchrom: 5042 5042 5042 5042 5042
+# Chrosome: 5042 5042 5042 5042 0 0 0 0 0 0 0 0 0 0 0
 # ==== Step 3,4 and 5: No. 5 migration ...
 # 1. Multicores working, please wait ... 
-# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01494836 hours
-# New Pop completed within 53.81447 secs.
-# Migration completed within 0.0001561642 secs. 
+# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01557687 hours
+# New Pop completed within 56.07729 secs.
+# Migration completed within 0.0001499653 secs. 
 # 
-# Bchrom: 5007 5009 5084 5007 5009
-# Chrosome: 5007 5007 5007 5009 5084 0 0 0 0 0 0 0 0 0 0
+# Bchrom: 5042 5042 5042 5042 5042
+# Chrosome: 5042 5042 5042 5042 5042 0 0 0 0 0 0 0 0 0 0
 # ==== Step 3,4 and 5: No. 6 migration ...
 # 1. Multicores working, please wait ... 
-# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01453066 hours
-# New Pop completed within 52.31076 secs.
-# Migration completed within 0.0001718998 secs. 
+# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01566321 hours
+# New Pop completed within 56.38792 secs.
+# Migration completed within 0.0001649857 secs. 
 # 
-# Bchrom: 5007 5084 5084 5016 5009
-# Chrosome: 5007 5007 5007 5009 5084 5016 0 0 0 0 0 0 0 0 0
+# Bchrom: 5042 5042 5042 5042 5042
+# Chrosome: 5042 5042 5042 5042 5042 5042 0 0 0 0 0 0 0 0 0
 # ==== Step 3,4 and 5: No. 7 migration ...
 # 1. Multicores working, please wait ... 
-# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01462931 hours
-# New Pop completed within 52.66589 secs.
-# Migration completed within 0.0004298687 secs. 
+# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01559887 hours
+# New Pop completed within 56.15638 secs.
+# Migration completed within 0.0001571178 secs. 
 # 
-# Bchrom: 5016 5084 5084 5016 5084
-# Chrosome: 5007 5007 5007 5009 5084 5016 5016 0 0 0 0 0 0 0 0
+# Bchrom: 5042 5042 5042 5042 5042
+# Chrosome: 5042 5042 5042 5042 5042 5042 5042 0 0 0 0 0 0 0 0
 # ==== Step 3,4 and 5: No. 8 migration ...
 # 1. Multicores working, please wait ... 
-# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01492087 hours
-# New Pop completed within 53.71557 secs.
-# Migration completed within 0.0001420975 secs. 
+# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01564088 hours
+# New Pop completed within 56.30747 secs.
+# Migration completed within 0.0001730919 secs. 
 # 
-# Bchrom: 5016 5084 5084 5016 5084
-# Chrosome: 5007 5007 5007 5009 5084 5016 5016 5016 0 0 0 0 0 0 0
+# Bchrom: 5042 5042 5042 5042 5042
+# Chrosome: 5042 5042 5042 5042 5042 5042 5042 5042 0 0 0 0 0 0 0
 # ==== Step 3,4 and 5: No. 9 migration ...
 # 1. Multicores working, please wait ... 
-# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01488798 hours
-# New Pop completed within 53.59712 secs.
-# Migration completed within 0.0001330376 secs. 
+# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.0155853 hours
+# New Pop completed within 56.10752 secs.
+# Migration completed within 0.0001339912 secs. 
 # 
-# Bchrom: 5016 5084 5016 5016 5016
-# Chrosome: 5007 5007 5007 5009 5084 5016 5016 5016 5016 0 0 0 0 0 0
+# Bchrom: 5042 5042 5042 5042 5042
+# Chrosome: 5042 5042 5042 5042 5042 5042 5042 5042 5042 0 0 0 0 0 0
 # ==== Step 3,4 and 5: No. 10 migration ...
 # 1. Multicores working, please wait ... 
-# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01462548 hours
-# New Pop completed within 52.65215 secs.
-# Migration completed within 0.0001561642 secs. 
-# 
-# Bchrom: 5016 5016 5016 5016 5016
-# Chrosome: 5007 5007 5007 5009 5084 5016 5016 5016 5016 5016 0 0 0 0 0
-# ==== Step 3,4 and 5: No. 11 migration ...
-# 1. Multicores working, please wait ... 
-# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01418539 hours
-# New Pop completed within 51.06775 secs.
-# Migration completed within 0.0001749992 secs. 
-# 
-# Bchrom: 5016 5016 5016 5016 5016
-# Chrosome: 5007 5007 5007 5009 5084 5016 5016 5016 5016 5016 5016 0 0 0 0
-# ==== Step 3,4 and 5: No. 12 migration ...
-# 1. Multicores working, please wait ... 
-# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01500815 hours
-# New Pop completed within 54.02972 secs.
-# Migration completed within 0.0001468658 secs. 
-# 
-# Bchrom: 5016 5016 5016 5016 5016
-# Chrosome: 5007 5007 5007 5009 5084 5016 5016 5016 5016 5016 5016 5016 0 0 0
-# ==== Step 3,4 and 5: No. 13 migration ...
-# 1. Multicores working, please wait ... 
-# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01452925 hours
-# New Pop completed within 52.30567 secs.
-# Migration completed within 0.0002779961 secs. 
-# 
-# Bchrom: 5016 5016 5016 5016 5016
-# Chrosome: 5007 5007 5007 5009 5084 5016 5016 5016 5016 5016 5016 5016 5016 0 0
-# ==== Step 3,4 and 5: No. 14 migration ...
-# 1. Multicores working, please wait ... 
-# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01472402 hours
-# New Pop completed within 53.00684 secs.
-# Migration completed within 0.0002520084 secs. 
-# 
-# Bchrom: 5024 5016 5016 5016 5016
-# Chrosome: 5007 5007 5007 5009 5084 5016 5016 5016 5016 5016 5016 5016 5016 5024 0
-# ==== Step 3,4 and 5: No. 15 migration ...
-# 1. Multicores working, please wait ... 
-# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.01479905 hours
-# New Pop completed within 53.27692 secs.
-# Migration completed within 0.0002470016 secs.
+# 2. nTasks = 5 	 nCore = 5 	 Total Time = 0.015809 hours
+# New Pop completed within 56.91274 secs.
+# Migration completed within 0.0001840591 secs.
 
 
 finaltim2 - finaltim1
-# Time difference of 17.25397 mins
+# Time difference of 14.00741 mins
 
 result
 # $bestfit
-# [1] -15012.23
+# [1] -14779.6
 # 
 # $bestchrom
-# [1] 5024
+# [1] 5042
 # 
 # $countMig
-# [1] 15
+# [1] 10
 
 
 
@@ -562,15 +522,15 @@ parHa      <- resEstHa$parEst
 logLHa     <- LoglikCalcCpp(parHa, DesignXHa, y_log, mm, 
                             conv = mytol, stepNR=stepsize[2])
 logLHa
-# [1] -15012.23
+# [1] -14779.6
 LambdaStat.Est <- -2*(logLH0 - logLHa)
 LambdaStat.Est
-# [1] 78.89487
+# [1] 77.35304
 
 # estimated changepoint related date
 dat2[tauEst,]
 #         V1 V2 V3 V4 V5                Date V6
-# 43137 1978 10  6  9  8 1978-10-06 09:00:00  3
+# 43287 1978 10 24 15  9 1978-10-24 15:00:00  3
 
 tauEst
-# [1] 5024
+# [1] 5042
