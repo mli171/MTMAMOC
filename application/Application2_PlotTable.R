@@ -82,7 +82,7 @@ myTSK11_K5_mean = function(dat2, TargetHour, pm1, pm2, tauEst, mytitles){
 ################################################################################
 ################################################################################
 
-TargetHour = 9
+TargetHour = 9                       ### change to 15 to obtain appendix results
 mytitles = paste0("Hour ", TargetHour)
 
 ################################################################################
