@@ -165,6 +165,7 @@ Re_latent <- function(par=NULL, DesignX=NULL, X=NULL){
   return(res)
 }
 
+
 ################################################################################
 ################################################################################
 ################################################################################
@@ -175,8 +176,8 @@ datdir = "~/OneDrive - University of Louisiana Lafayette/data/"
 dat = read.table(file=paste0(datdir, "CloudCover/FortStJohnAirport/hourly_day.txt"))
 dat$Date = ISOdate(year = dat$V1, month = dat$V2, day = dat$V3, hour = dat$V4)
 
-## filter1: 30 years data from 1965 to 1994
-dat1 = dat[dat$V1>=1965 & dat$V1 <=1994,]
+## filter1: 30 years data from 1975 to 1980
+dat1 = dat[dat$V1 >= 1976 & dat$V1 <=1980,]
 dat1$V5 = as.numeric(as.character(dat1$V5))
 
 ## filter2: to exclude Feb 29 for exact period T=365
@@ -189,6 +190,13 @@ TargetHour = 9
 
 dat2 = dat1[dat1$V4==TargetHour, ]
 dat2$V6 = catg_agg(dat2$V5)
+
+
+################################################################################
+################################################################################
+##########                       Model Fitting                        ##########
+################################################################################
+################################################################################
 
 mm = dat2$V6
 m = dat2$V5
@@ -268,43 +276,6 @@ abline(v=FitRes11$CpLocZ, col="red")
 dat2[FitRes11$CpLocY,]
 dat2[FitRes11$CpLocZ,]
 
-FitRes11$CpLocY
-FitRes11$CpLocZ
-
-
-################################################################################
-################################################################################
-##########                       Model Fitting                        ##########
-################################################################################
-################################################################################
-
-mm = dat2$V6
-m = dat2$V5
-
-Ti     <- length(mm)
-K      <- max(mm) + 1
-y_log <- matrix(0, nrow=Ti, ncol=K)
-for (tt in 1:Ti) {y_log[tt,mm[tt]+1] <- 1}
-
-ss = 365
-
-nCoreuse <- 40
-lc  <- floor(0.05*Ti)
-uc  <- floor(0.95*Ti)
-tmp <- lc:uc
-tauClc <- lc:(lc+(floor(length(tmp)/nCoreuse) + 1)*nCoreuse-1)
-
-# Design Matrix
-AValue     <- rep(1,Ti)
-TrendValue <- 1:Ti/Ti
-BValue     <- cos(2*pi*(1:Ti)/ss)
-DValue     <- sin(2*pi*(1:Ti)/ss)
-
-# Computation setting
-mytol    = 1e-05
-stepsize = c(1, 1)
-mymaxit  = 1000
-
 #################################################################
 #               Parameter Estimation under H0                   #   Model 2 with no changepoint
 #################################################################
@@ -346,8 +317,8 @@ pm_M2_H0[,K] <- 1 - gamm_M2_H0[,K-1]
 
 logL_M2_H0 <- LoglikCalcCpp(resEst_M2_H0$parEst, DesignXEst_M2_H0, y_log, mm, conv = mytol, stepNR=stepsize[2])
 # data from server
-load(paste0("application/MTMApplication_CandaCloudK5_FULL_30Years65to94_Hour", TargetHour, ".RData"))
-LambdaStat_M2 <- -2*(logL_M2_H0 - CPCloudHaClc$logLHa)
+load(paste0("application/res/MTMApplication_CandaCloudK5_FULL_5Years76to80_Hour", TargetHour, ".RData"))
+LambdaStat_M2 <- -2*(logL_M2_H0 - CPCloudHaClc$logLHa) # 19.599
 tauest_M2_H0  <- which.max(LambdaStat_M2)
 
 
@@ -397,15 +368,12 @@ for (i in 1:(K-1)){
 }
 pm_M2_Ha[,K] <- 1 - gamm_M2_Ha[,K-1]
 
-
 save(dat2, 
      DesignXEst_M2_H0, par_est_M2_H0, parMatrix_M2_H0, pm_M2_H0, gamm_M2_H0, 
      tauClc, LambdaStat_M2, 
      DesignXEst_M2_Ha, par_est_M2_Ha, parMatrix_M2_Ha, pm_M2_Ha, gamm_M2_Ha,
      tauEst_M2, LambdaStat.Est_M2_Ha, myresid_M2_Ha,
-     file = paste0("Application/ApplicationNeed_Hour", TargetHour, "_Model2.RData"))
-
-
+     file = paste0("application/ApplicationNeed_Hour", TargetHour, "_Model2_5years1976to1980.RData"))
 
 
 
@@ -463,10 +431,14 @@ pm_M1_H0[,K] <- 1 - gamm_M1_H0[,K-1]
 
 logL_M1_H0 <- LoglikCalcCpp(resEst_M1_H0$parEst, DesignXEst_M1_H0, y_log, mm, conv = mytol, stepNR=stepsize[2])
 # data from server
-load(paste0("application/MTMApplication_CandaCloudK5_SEA_30Years65to94_Hour", TargetHour, ".RData"))
-LambdaStat_M1 <- -2*(logL_M1_H0 - CPCloudHaClc$logLHa)
-tauest_M1_H0  <- which.max(LambdaStat_M1)
+load(paste0("application/res/MTMApplication_CandaCloudK5_SEA_5Years76to80_Hour", TargetHour, ".RData"))
+LambdaStat_M1 <- -2*(logL_M1_H0 - CPCloudHaClc$logLHa) # 17.757
+tauest_M1_H0  <- which.max(LambdaStat_M1) # [1] 939
 
+max(LambdaStat_M1) # [1] 35.49049
+dat2[tauest_M1_H0,]
+#         V1 V2 V3 V4 V5                Date V6
+# 42577 1978  7 28  9  9 1978-07-28 09:00:00  3
 
 #################################################################
 #               Parameter Estimation under Ha                   #   Model 1 with changepoint
@@ -516,7 +488,7 @@ save(dat2,
      tauClc, LambdaStat_M1, 
      DesignXEst_M1_Ha, par_est_M1_Ha, parMatrix_M1_Ha, pm_M1_Ha, gamm_M1_Ha,
      tauEst_M1, LambdaStat.Est_M1_Ha, myresid_M1_Ha,
-     file = paste0("Application/ApplicationNeed_Hour", TargetHour, "_Model1.RData"))
+     file = paste0("application/ApplicationNeed_Hour", TargetHour, "_Model1_5years1976to1980.RData"))
 
 
 

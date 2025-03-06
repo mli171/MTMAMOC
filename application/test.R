@@ -165,6 +165,7 @@ Re_latent <- function(par=NULL, DesignX=NULL, X=NULL){
   return(res)
 }
 
+
 ################################################################################
 ################################################################################
 ################################################################################
@@ -173,10 +174,10 @@ Re_latent <- function(par=NULL, DesignX=NULL, X=NULL){
 
 datdir = "~/OneDrive - University of Louisiana Lafayette/data/"
 dat = read.table(file=paste0(datdir, "CloudCover/FortStJohnAirport/hourly_day.txt"))
-dat$Date = ISOdate(year = dat$V1, month = dat$V2, day = dat$V3, hour = dat$V4)
 
 ## filter1: 30 years data from 1965 to 1994
-dat1 = dat[dat$V1>=1965 & dat$V1 <=1994,]
+dat1 = dat[dat$V1 >= 1965 & dat$V1 <=1994,]
+dat1 = dat[dat$V1 >= 1976 & dat$V1 <=1980,]
 dat1$V5 = as.numeric(as.character(dat1$V5))
 
 ## filter2: to exclude Feb 29 for exact period T=365
@@ -190,8 +191,16 @@ TargetHour = 9
 dat2 = dat1[dat1$V4==TargetHour, ]
 dat2$V6 = catg_agg(dat2$V5)
 
+
+################################################################################
+################################################################################
+##########                       Model Fitting                        ##########
+################################################################################
+################################################################################
+
 mm = dat2$V6
 m = dat2$V5
+
 
 Ti     <- length(mm)
 K      <- max(mm) + 1
@@ -200,7 +209,7 @@ for (tt in 1:Ti) {y_log[tt,mm[tt]+1] <- 1}
 
 ss = 365
 
-nCoreuse <- 10
+nCoreuse <- 40
 lc  <- floor(0.05*Ti)
 uc  <- floor(0.95*Ti)
 tmp <- lc:uc
@@ -217,8 +226,10 @@ mytol    = 1e-05
 stepsize = c(1, 1)
 mymaxit  = 1000
 
+
 ##### Design Matrix
 res_sim = list(X_hour=mm, X_hour_wide=y_log)
+# DesignXH0  = cbind(AValue, TrendValue, BValue, DValue)
 DesignXH0  = cbind(AValue, BValue, DValue)
 FitRes11 = try(UniCpDetect(res_sim = res_sim, DesignXEst=DesignXH0, stepsize = 1, BoundAdjust = -0.5))
 
@@ -268,47 +279,12 @@ abline(v=FitRes11$CpLocZ, col="red")
 dat2[FitRes11$CpLocY,]
 dat2[FitRes11$CpLocZ,]
 
-FitRes11$CpLocY
-FitRes11$CpLocZ
-
-
-################################################################################
-################################################################################
-##########                       Model Fitting                        ##########
-################################################################################
-################################################################################
-
-mm = dat2$V6
-m = dat2$V5
-
-Ti     <- length(mm)
-K      <- max(mm) + 1
-y_log <- matrix(0, nrow=Ti, ncol=K)
-for (tt in 1:Ti) {y_log[tt,mm[tt]+1] <- 1}
-
-ss = 365
-
-nCoreuse <- 40
-lc  <- floor(0.05*Ti)
-uc  <- floor(0.95*Ti)
-tmp <- lc:uc
-tauClc <- lc:(lc+(floor(length(tmp)/nCoreuse) + 1)*nCoreuse-1)
-
-# Design Matrix
-AValue     <- rep(1,Ti)
-TrendValue <- 1:Ti/Ti
-BValue     <- cos(2*pi*(1:Ti)/ss)
-DValue     <- sin(2*pi*(1:Ti)/ss)
-
-# Computation setting
-mytol    = 1e-05
-stepsize = c(1, 1)
-mymaxit  = 1000
 
 #################################################################
 #               Parameter Estimation under H0                   #   Model 2 with no changepoint
 #################################################################
-DesignXEst_M2_H0  <- cbind(AValue, TrendValue, BValue, DValue)
+# DesignXEst_M2_H0  <- cbind(AValue, TrendValue, BValue, DValue)
+DesignXEst_M2_H0  <- cbind(AValue, BValue, DValue)
 parinitial_M2_H0  <- ParInitCalcu(y_log=y_log, m=mm, DesignX=DesignXEst_M2_H0)
 resEst_M2_H0      <- SeqQuasiNWCpp(parinitial_M2_H0, y_log, mm, DesignXEst_M2_H0, stepsize, mymaxit, mytol)
 par_est_M2_H0     <- resEst_M2_H0$parEst
@@ -321,7 +297,7 @@ parMatrix_M2_H0 <- cbind(par_est_M2_H0[1:length(par_est_M2_H0)],
                          par_est_M2_H0[1:length(par_est_M2_H0)] + 2*mySE_M2_H0)
 colnames(parMatrix_M2_H0) <- c("Param", "LowerB", "UpperB")
 rownames(parMatrix_M2_H0) <- c(paste("A", 1:(K-1), sep=""),
-                               paste("beta", 1:(K-1), sep=""),
+                               # paste("beta", 1:(K-1), sep=""),
                                paste("B", 1:(K-1), sep=""),
                                paste("D", 1:(K-1), sep=""),
                                rep("xi", (K-1)^2))
@@ -346,7 +322,8 @@ pm_M2_H0[,K] <- 1 - gamm_M2_H0[,K-1]
 
 logL_M2_H0 <- LoglikCalcCpp(resEst_M2_H0$parEst, DesignXEst_M2_H0, y_log, mm, conv = mytol, stepNR=stepsize[2])
 # data from server
-load(paste0("application/MTMApplication_CandaCloudK5_FULL_30Years65to94_Hour", TargetHour, ".RData"))
+# load(paste0("application/MTMApplication_CandaCloudK5_FULL_30Years65to94_Hour", TargetHour, ".RData"))
+load(paste0("application/res/MTMApplication_CandaCloudK5_SEA_5Years75to80_Hour", TargetHour, ".RData"))
 LambdaStat_M2 <- -2*(logL_M2_H0 - CPCloudHaClc$logLHa)
 tauest_M2_H0  <- which.max(LambdaStat_M2)
 
@@ -369,7 +346,7 @@ parMatrix_M2_Ha   <- cbind(par_est_M2_Ha[1:length(par_est_M2_Ha)],
                            par_est_M2_Ha[1:length(par_est_M2_Ha)] + 2*mySE_M2_Ha)
 colnames(parMatrix_M2_Ha) <- c("Param", "LowerB", "UpperB")
 rownames(parMatrix_M2_Ha) <- c(paste("A", 1:(K-1), sep=""),
-                               paste("beta", 1:(K-1), sep=""),
+                               # paste("beta", 1:(K-1), sep=""),
                                paste("B", 1:(K-1), sep=""),
                                paste("D", 1:(K-1), sep=""),
                                paste("Delta", 1:(K-1), sep=""),
